@@ -17,6 +17,8 @@ import ReplayKit
 import VideoToolbox
 import Network
 import CoreMedia
+import CoreImage
+import ImageIO
 
 final class SampleHandler: RPBroadcastSampleHandler {
     private let q = DispatchQueue(label: "td.broadcast")
@@ -37,12 +39,16 @@ final class SampleHandler: RPBroadcastSampleHandler {
     private var wanted = false // a computer or phone watches: encode
     // Landscape (an iPad, mostly): iOS hands the frames upright as in portrait, with how the device
     // is held beside them. Scaled down to the size we send, then turned, so the computer gets the
-    // picture the right way up (and the extension stays inside its 50 MB).
-    private var scaler: VTPixelTransferSession?
-    private var rotator: VTPixelRotationSession?
+    // picture the right way up (and the extension stays inside its 50 MB). iOS 16+ uses VideoToolbox;
+    // iOS 15 uses the Core Image path below.
+    @available(iOS 16.0, *) private var scaler: VTPixelTransferSession?
+    @available(iOS 16.0, *) private var rotator: VTPixelRotationSession?
     private var scaledPool: CVPixelBufferPool?
     private var turnedPool: CVPixelBufferPool?
     private var poolKey = ""
+    private let legacyCI = CIContext(options: [.cacheIntermediates: false])
+    private var legacyPool: CVPixelBufferPool?
+    private var legacyPoolKey = ""
 
     override func broadcastStarted(withSetupInfo setupInfo: [String: NSObject]?) {
         let c = NWConnection(host: "127.0.0.1", port: 47830, using: .tcp)
@@ -109,6 +115,16 @@ final class SampleHandler: RPBroadcastSampleHandler {
     // ---- turning ----
 
     private func upright(_ px: CVPixelBuffer, _ o: CGImagePropertyOrientation) -> CVPixelBuffer? {
+        switch o {
+        case .left, .leftMirrored, .right, .rightMirrored, .down, .downMirrored: break
+        default: return px
+        }
+        if #available(iOS 16.0, *) { return uprightWithVideoToolbox(px, o) }
+        return uprightWithCoreImage(px, o)
+    }
+
+    @available(iOS 16.0, *)
+    private func uprightWithVideoToolbox(_ px: CVPixelBuffer, _ o: CGImagePropertyOrientation) -> CVPixelBuffer? {
         let rotation: CFString
         switch o {
         case .left, .leftMirrored: rotation = kVTRotation_CW90
@@ -139,6 +155,48 @@ final class SampleHandler: RPBroadcastSampleHandler {
               VTPixelTransferSessionTransferImage(s, from: px, to: a) == noErr,
               VTPixelRotationSessionRotateImage(r, a, b) == noErr else { return px }
         return b
+    }
+
+    // The newer VideoToolbox transfer and rotation sessions are iOS 16+. Render the same rotated,
+    // bounded frame through Core Image on iOS 15; keep the result in a reusable pixel-buffer pool.
+    private func uprightWithCoreImage(_ px: CVPixelBuffer, _ o: CGImagePropertyOrientation) -> CVPixelBuffer? {
+        let angle: CGFloat
+        let quarterTurn: Bool
+        switch o {
+        case .left, .leftMirrored: angle = -.pi / 2; quarterTurn = true
+        case .right, .rightMirrored: angle = .pi / 2; quarterTurn = true
+        case .down, .downMirrored: angle = .pi; quarterTurn = false
+        default: return px
+        }
+
+        let sourceWidth = CVPixelBufferGetWidth(px)
+        let sourceHeight = CVPixelBufferGetHeight(px)
+        let rotatedWidth = quarterTurn ? sourceHeight : sourceWidth
+        let rotatedHeight = quarterTurn ? sourceWidth : sourceHeight
+        let scale = maxSize > 0 ? min(1.0, Double(maxSize) / Double(max(rotatedWidth, rotatedHeight))) : 1.0
+        let width = max(2, Int(Double(rotatedWidth) * scale) & ~1)
+        let height = max(2, Int(Double(rotatedHeight) * scale) & ~1)
+        let key = "\(width)x\(height)"
+        if key != legacyPoolKey {
+            legacyPoolKey = key
+            legacyPool = Self.pool(width, height, kCVPixelFormatType_32BGRA)
+        }
+        guard let pool = legacyPool else { return px }
+
+        var output: CVPixelBuffer?
+        guard CVPixelBufferPoolCreatePixelBuffer(nil, pool, &output) == kCVReturnSuccess,
+              let output = output else { return px }
+
+        let rotated = CIImage(cvPixelBuffer: px).transformed(by: CGAffineTransform(rotationAngle: angle))
+        let extent = rotated.extent
+        let normalized = rotated.transformed(by: CGAffineTransform(translationX: -extent.minX, y: -extent.minY))
+        let scaled = normalized.transformed(by: CGAffineTransform(
+            scaleX: CGFloat(width) / CGFloat(rotatedWidth), y: CGFloat(height) / CGFloat(rotatedHeight)
+        ))
+        legacyCI.render(scaled, to: output,
+                        bounds: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)),
+                        colorSpace: CGColorSpaceCreateDeviceRGB())
+        return output
     }
 
     private static func pool(_ w: Int, _ h: Int, _ fmt: OSType) -> CVPixelBufferPool? {
