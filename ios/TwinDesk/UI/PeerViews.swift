@@ -470,7 +470,7 @@ struct PeerThreadsView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
+        .modifier(CompatibleListBackground())
         .background(Backdrop())
         .navigationTitle(tr("Its messages"))
         .refreshable { load() }

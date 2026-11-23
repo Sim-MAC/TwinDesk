@@ -47,7 +47,7 @@ struct HistoryView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
+        .modifier(CompatibleListBackground())
         .background(Backdrop())
         .searchable(text: $q, prompt: tr("Filter"))
         .navigationTitle(clip ? tr("Clipboard history") : tr("Notification history"))

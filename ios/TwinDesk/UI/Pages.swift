@@ -2,6 +2,7 @@
 // The feature pages: Receive screen (and its full-screen viewer), Share screen, Remote (and its
 // full-screen pad), Notifications, Audio, Media, AirPlay & SMB, Shortcuts, About.
 import SwiftUI
+import Intents
 import Photos
 import AVKit
 import UIKit
@@ -729,6 +730,7 @@ struct ShortcutsView: View {
                 .glassCard()
             }
         }
+        .onAppear { INPreferences.requestSiriAuthorization { _ in } }
     }
 
     static let actions: [(String, String, String)] = [

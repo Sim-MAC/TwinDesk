@@ -150,6 +150,22 @@ final class AppUI: ObservableObject {
     func path(_ t: PhoneTab) -> Binding<[Page]> {
         Binding(get: { self.paths[t] ?? [] }, set: { self.paths[t] = $0 })
     }
+
+    func legacyPathActive(_ t: PhoneTab, depth: Int) -> Binding<Bool> {
+        Binding(
+            get: { (self.paths[t] ?? []).count > depth },
+            set: { active in
+                guard !active else { return }
+                let path = self.paths[t] ?? []
+                if path.count > depth { self.paths[t] = Array(path.prefix(depth)) }
+            }
+        )
+    }
+
+    func legacyPage(_ t: PhoneTab, depth: Int) -> Page? {
+        let path = paths[t] ?? []
+        return path.indices.contains(depth) ? path[depth] : nil
+    }
 }
 
 struct RootView: View {
@@ -174,15 +190,15 @@ struct RootView: View {
             .modifier(Covers(ui: ui))
             .sheet(isPresented: Binding(get: { _ = core.tick; return core.mirror.asking && core.pair == nil && ui.cover == nil },
                                         set: { if !$0 && core.mirror.asking { core.mirror.decline() } })) {
-                MirrorAskSheet().environmentObject(core).presentationDetents([.large])
+                MirrorAskSheet().environmentObject(core).modifier(CompatibleSheet(size: .large))
             }
             .modifier(PairPrompts())
             .sheet(isPresented: $ui.searching) {
-                NavigationStack { SearchView(sheet: true) }.environmentObject(core).environmentObject(ui)
+                NavigationHost { SearchView(sheet: true) }.environmentObject(core).environmentObject(ui)
             }
             .sheet(isPresented: $ui.arranging) { ArrangeSheet() }
             .sheet(isPresented: Binding(get: { ui.history != nil }, set: { if !$0 { ui.history = nil } })) {
-                NavigationStack { HistoryView(what: ui.history ?? "clip") }.environmentObject(core).environmentObject(ui)
+                NavigationHost { HistoryView(what: ui.history ?? "clip") }.environmentObject(core).environmentObject(ui)
             }
     }
 
@@ -240,25 +256,53 @@ struct RootView: View {
         if case .page(let p) = t { ui.page = p }
     }
 
+    @ViewBuilder
     private func pageStack(_ p: Page) -> some View {
-        NavigationStack(path: ui.path(.page(p))) {
-            PageView(page: p)
-                .environment(\.branded, p == .overview) // the tab's own page only
-                .navigationDestination(for: Page.self) { q in PageView(page: q).environment(\.branded, false) }
+        if #available(iOS 16.0, *) {
+            NavigationStack(path: ui.path(.page(p))) {
+                PageView(page: p)
+                    .environment(\.branded, p == .overview) // the tab's own page only
+                    .navigationDestination(for: Page.self) { q in PageView(page: q).environment(\.branded, false) }
+            }
+        } else {
+            NavigationView {
+                PageView(page: p)
+                    .environment(\.branded, p == .overview)
+                    .background { LegacyPathLink(tab: .page(p), depth: 0) }
+            }
+            .navigationViewStyle(StackNavigationViewStyle())
         }
     }
 
+    @ViewBuilder
     private func moreStack(_ tabs: [Page]) -> some View {
-        NavigationStack(path: ui.path(.more)) {
-            Sidebar(selection: nil, hiding: tabs)
-                .navigationDestination(for: Page.self) { p in PageView(page: p) }
+        if #available(iOS 16.0, *) {
+            NavigationStack(path: ui.path(.more)) {
+                Sidebar(selection: nil, hiding: tabs)
+                    .navigationDestination(for: Page.self) { p in PageView(page: p) }
+            }
+        } else {
+            NavigationView {
+                Sidebar(selection: nil, hiding: tabs, legacyNavigation: true)
+                    .background { LegacyPathLink(tab: .more, depth: 0) }
+            }
+            .navigationViewStyle(StackNavigationViewStyle())
         }
     }
 
+    @ViewBuilder
     private var searchStack: some View {
-        NavigationStack(path: ui.path(.search)) {
-            SearchView()
-                .navigationDestination(for: Page.self) { p in PageView(page: p) }
+        if #available(iOS 16.0, *) {
+            NavigationStack(path: ui.path(.search)) {
+                SearchView()
+                    .navigationDestination(for: Page.self) { p in PageView(page: p) }
+            }
+        } else {
+            NavigationView {
+                SearchView()
+                    .background { LegacyPathLink(tab: .search, depth: 0) }
+            }
+            .navigationViewStyle(StackNavigationViewStyle())
         }
     }
 
@@ -273,14 +317,23 @@ struct RootView: View {
         }
     }
 
+    @ViewBuilder
     private var split: some View {
-        NavigationSplitView {
-            Sidebar(selection: $ui.page)
-                .navigationSplitViewColumnWidth(min: 250, ideal: 280, max: 320)
-        } detail: {
-            NavigationStack { PageView(page: ui.page ?? .overview) }.id(ui.page)
+        if #available(iOS 16.0, *) {
+            NavigationSplitView {
+                Sidebar(selection: $ui.page)
+                    .navigationSplitViewColumnWidth(min: 250, ideal: 280, max: 320)
+            } detail: {
+                NavigationStack { PageView(page: ui.page ?? .overview) }.id(ui.page)
+            }
+            .navigationSplitViewStyle(.balanced)
+        } else {
+            NavigationView {
+                Sidebar(selection: $ui.page, legacyNavigation: true)
+                PageView(page: ui.page ?? .overview).id(ui.page)
+            }
+            .navigationViewStyle(DoubleColumnNavigationViewStyle())
         }
-        .navigationSplitViewStyle(.balanced)
     }
 
     // A hardware keyboard (iPad's Magic Keyboard): ⌘1–6 and ⌘, for the pages, ⇧⌘V sends the
@@ -296,6 +349,37 @@ struct RootView: View {
             Button("") { ui.searching = true }.keyboardShortcut("k", modifiers: .command)
         }
         .opacity(0).allowsHitTesting(false).accessibilityHidden(true)
+    }
+}
+
+// NavigationView has no value-based destinations on iOS 15. These links mirror AppUI's existing
+// per-tab page arrays, so programmatic opens and Back gestures update the same source of truth.
+private struct LegacyPathLink: View {
+    @EnvironmentObject private var ui: AppUI
+    let tab: PhoneTab
+    let depth: Int
+
+    var body: some View {
+        if let page = ui.legacyPage(tab, depth: depth) {
+            NavigationLink(
+                destination: LegacyPageNode(page: page, tab: tab, depth: depth + 1),
+                isActive: ui.legacyPathActive(tab, depth: depth)
+            ) { EmptyView() }
+                .hidden()
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+private struct LegacyPageNode: View {
+    let page: Page
+    let tab: PhoneTab
+    let depth: Int
+
+    var body: some View {
+        PageView(page: page)
+            .environment(\.branded, false)
+            .background { LegacyPathLink(tab: tab, depth: depth) }
     }
 }
 
@@ -335,7 +419,7 @@ private struct PairPrompts: ViewModifier {
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: Binding(get: { core.pair != nil }, set: { if !$0 { core.cancelPairing() } })) {
-                PairSheet().environmentObject(core).presentationDetents([.medium])
+                PairSheet().environmentObject(core).modifier(CompatibleSheet(size: .medium))
             }
             .alert(core.invite.map { tr("{name} wants to connect", ["name": $0.name]) } ?? "",
                    isPresented: Binding(get: { core.invite != nil && core.pair == nil }, set: { if !$0 { core.dismissInvite() } })) {
@@ -349,7 +433,7 @@ private struct PairPrompts: ViewModifier {
             .sheet(isPresented: Binding(get: { _ = core.tick; return core.peer.hostPairing != nil && core.pair == nil },
                                         set: { if !$0, core.peer.hostPairing != nil { core.peer.respondPair(false) } })) {
                 if let p = core.peer.hostPairing {
-                    PeerPairAsk(p: p).padding(24).environmentObject(core).presentationDetents([.medium])
+                    PeerPairAsk(p: p).padding(24).environmentObject(core).modifier(CompatibleSheet(size: .medium))
                 }
             }
             .alert(core.peer.asked.map { tr("{name} wants to connect", ["name": $0.name]) } ?? "",
@@ -389,6 +473,7 @@ struct Sidebar: View {
     @EnvironmentObject var core: Core
     @EnvironmentObject var ui: AppUI
     var selection: Binding<Page?>?
+    var legacyNavigation = false
     var hiding: [Page] = [] // iPhone's More: the pages that have tabs left out
 
     var body: some View {
@@ -396,7 +481,7 @@ struct Sidebar: View {
         // selection's type, and a mismatch leaves every row dead. Plain buttons always answer.
         List { content }
         .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
+        .modifier(CompatibleListBackground())
         .background(Backdrop())
         // iPhone's More: a large title. iPad: TwinDesk's own header (the mark, the name, the state)
         // in the bar, beside the sidebar's button.
@@ -458,8 +543,18 @@ struct Sidebar: View {
                             .hoverLift()
                             .listRowBackground(sel.wrappedValue == p ? TDColor.accent.opacity(0.35) : TDColor.card)
                     } else {
-                        NavigationLink(value: p) { row(p) }
-                            .listRowBackground(TDColor.card)
+                        if legacyNavigation {
+                            Button { ui.open(p) } label: { row(p).contentShape(Rectangle()) }
+                                .buttonStyle(.plain)
+                                .listRowBackground(TDColor.card)
+                        } else if #available(iOS 16.0, *) {
+                            NavigationLink(value: p) { row(p) }
+                                .listRowBackground(TDColor.card)
+                        } else {
+                            Button { ui.open(p) } label: { row(p).contentShape(Rectangle()) }
+                                .buttonStyle(.plain)
+                                .listRowBackground(TDColor.card)
+                        }
                     }
                 }
             }

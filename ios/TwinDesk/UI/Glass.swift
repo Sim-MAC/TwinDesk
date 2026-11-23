@@ -414,7 +414,35 @@ struct PageScroll<Content: View>: View {
         }
         .background(Backdrop())
         .navigationTitle(branded ? "" : title)
-        .toolbar(branded ? .hidden : .automatic, for: .navigationBar)
+        .modifier(PageNavigationBar(hidden: branded))
+    }
+}
+
+private struct PageNavigationBar: ViewModifier {
+    let hidden: Bool
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.toolbar(hidden ? .hidden : .automatic, for: .navigationBar)
+        } else {
+            content.navigationBarHidden(hidden)
+        }
+    }
+}
+
+// A small compatibility wrapper for modal editors that need a navigation bar but no typed path.
+struct NavigationHost<Content: View>: View {
+    let content: Content
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+
+    @ViewBuilder
+    var body: some View {
+        if #available(iOS 16.0, *) {
+            NavigationStack { content }
+        } else {
+            NavigationView { content }
+                .navigationViewStyle(StackNavigationViewStyle())
+        }
     }
 }
 

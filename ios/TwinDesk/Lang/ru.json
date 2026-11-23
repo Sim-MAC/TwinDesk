@@ -963,5 +963,6 @@
   "Screenshot": "Снимок экрана",
   "Couldn’t take the screenshot": "Не удалось сделать снимок экрана",
   "Screenshot saved in Photos": "Снимок экрана сохранён в «Фото»",
-  "Allow TwinDesk to add photos in Settings": "Разрешите TwinDesk добавлять фото в «Настройках»"
+  "Allow TwinDesk to add photos in Settings": "Разрешите TwinDesk добавлять фото в «Настройках»",
+  "Showing the computer’s screen.": "Показывается экран компьютера."
 }

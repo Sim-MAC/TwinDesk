@@ -1,4 +1,5 @@
 /* What iOS asks before TwinDesk uses something. */
+NSSiriUsageDescription = "Panoyu ve dosyaları göndermek, bilgisayara bağlanmak, ekranını göstermek, oynatımı denetlemek ve bilgisayarı kilitlemek için Siri’yi ve Kestirmeler’i kullanın.";
 NSLocalNetworkUsageDescription = "TwinDesk bu ağdaki bilgisayarlarınızı bulur ve onlara bağlanır.";
 NSLocationWhenInUseUsageDescription = "TwinDesk yaklaşık konumunuzu (GPS yok) yalnızca ekranda değilken bilgisayarınıza bağlı kalmak için kullanır. Nerede olduğunuzu asla saklamaz veya göndermez.";
 NSPhotoLibraryUsageDescription = "Fotoğraf ve videoları bilgisayarınıza gönderin, onları göstermesine ve kaydetmesine izin verin (açık tuttuğunuz sürece bilgisayardaki Fotoğraflar).";

@@ -157,7 +157,7 @@ A native Rust input lane over UDP, a parallel file engine, hardware video. [How]
 </td>
 <td width="20%" align="center" valign="top">
 
-**📱 iPhone and iPad**<br><sub>iOS 16 or later</sub>
+**📱 iPhone and iPad**<br><sub>iOS 15 or later</sub>
 
 <a href="#twindesk-web"><img src="https://img.shields.io/badge/No_app-twindesk.local-5e5ce6?style=for-the-badge" alt="TwinDesk Web, no app"></a><br>
 <a href="#altstore"><img src="https://img.shields.io/badge/AltStore-source-1c8bd6?style=for-the-badge" alt="AltStore source"></a><br>
@@ -1300,7 +1300,7 @@ Inside each helper, **tdfast** (Rust) runs the tdv2 input lane.
 | `linux-helper/` | Linux helper (C): XInput2 / XTest on X11, evdev / uinput on Wayland, XRandR, window list, XDND edge strip |
 | `native/tdfast/` | The tdv2 input lane (Rust, C ABI), linked into every helper |
 | `android/` | Android app (Kotlin, Jetpack Compose); the computers drive the phone through adb and [scrcpy](https://github.com/Genymobile/scrcpy)'s server |
-| `ios/` | iPhone and iPad app (SwiftUI, iOS 16+): the app, the Share Screen broadcast extension and the share extension, built in CI into an unsigned IPA |
+| `ios/` | iPhone and iPad app (SwiftUI, iOS 15+): the app, the Share Screen broadcast extension and the share extension, built in CI into an unsigned IPA |
 | `web/` | TwinDesk Web, the browser client each computer serves at `twindesk.local` (a PWA with Web Push) |
 | `shared/` | Used by every app: the wire protocol, the input lane, fx2, ReZume, the Bluetooth pipe and Wi-Fi Direct links, the phone hub, shared folders, frame generation and icons |
 

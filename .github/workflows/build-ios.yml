@@ -28,7 +28,7 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.ref }}
 
-      # The newest Xcode on the runner (the iOS 26 SDK: Liquid Glass; the app runs from iOS 16).
+      # The newest Xcode on the runner (the iOS 26 SDK: Liquid Glass; the app runs from iOS 15).
       - name: Xcode
         run: |
           X=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)

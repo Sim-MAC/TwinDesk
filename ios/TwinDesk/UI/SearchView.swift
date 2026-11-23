@@ -84,7 +84,7 @@ struct ArrangeSheet: View {
     @State private var search: Bool = NavOrder.searchButton
 
     var body: some View {
-        NavigationStack {
+        NavigationHost {
             List {
                 Section {
                     Stepper(value: $bar, in: NavOrder.minBar...NavOrder.barLimit(search: search)) {
@@ -224,7 +224,7 @@ struct SearchView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
+        .modifier(CompatibleListBackground())
         .background(Backdrop())
         .safeAreaInset(edge: .top) { field }
         .navigationTitle(tr("Search"))

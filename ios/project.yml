@@ -4,7 +4,7 @@ name: TwinDesk
 options:
   bundleIdPrefix: com.twindesk
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "15.0"
   createIntermediateGroups: true
 settings:
   base:

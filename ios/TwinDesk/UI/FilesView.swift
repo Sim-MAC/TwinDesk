@@ -2,14 +2,13 @@
 // Files: send from Files or Photos, what's going and what came, and the Received folder in the
 // Files app (On My \(Device.word) › TwinDesk › Received).
 import SwiftUI
-import PhotosUI
 import UIKit
 import UniformTypeIdentifiers
 
 struct FilesView: View {
     @EnvironmentObject var core: Core
     @State private var picking = false
-    @State private var photos: [PhotosPickerItem] = []
+    @State private var pickingPhotos = false
 
     var body: some View {
         ScrollView {
@@ -18,7 +17,7 @@ struct FilesView: View {
                         HStack(spacing: 12) {
                             Button { picking = true } label: { Label(tr("Files"), systemImage: "folder.badge.plus").frame(maxWidth: .infinity) }
                                 .primaryButton().controlSize(.large).keyboardShortcut("o", modifiers: .command)
-                            PhotosPicker(selection: $photos, maxSelectionCount: 50, matching: .any(of: [.images, .videos])) {
+                            Button { pickingPhotos = true } label: {
                                 Label(tr("Photos"), systemImage: "photo.on.rectangle").frame(maxWidth: .infinity)
                             }
                             .secondaryButton().controlSize(.large)
@@ -72,12 +71,10 @@ struct FilesView: View {
             .fileImporter(isPresented: $picking, allowedContentTypes: [.item], allowsMultipleSelection: true) { r in
                 if case .success(let urls) = r { for u in urls { core.files.adopt(u) }; core.files.flushShares() }
             }
-            .onChange(of: photos) { items in
-                guard !items.isEmpty else { return }
-                photos = []
-                Task {
-                    for it in items { if let f = try? await it.loadTransferable(type: PickedFile.self) { await MainActor.run { core.files.adopt(f.url) } } }
-                    await MainActor.run { core.files.flushShares() }
+            .sheet(isPresented: $pickingPhotos) {
+                PhotoPicker { urls in
+                    for url in urls { core.files.adopt(url) }
+                    if !urls.isEmpty { core.files.flushShares() }
                 }
             }
     }

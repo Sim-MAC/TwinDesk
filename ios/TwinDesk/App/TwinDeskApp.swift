@@ -3,6 +3,7 @@
 // a twindesk://pair link from the computer's QR code, a relaunch by location in the background).
 import SwiftUI
 import UIKit
+import Intents
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
@@ -18,6 +19,18 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     // sideways even with Portrait Orientation Lock on, which a geometry request alone didn't do.
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         Orientation.mask
+    }
+
+    // iOS 14+ can handle custom SiriKit intents in the app process. These actions depend on the
+    // app-owned Core session, so routing them here avoids a disconnected Core in an extension.
+    func application(_ application: UIApplication, handlerFor intent: INIntent) -> Any? {
+        switch intent {
+        case is SendClipboardIntent, is SaveCopiedFilesIntent, is ConnectIntent, is SendFilesIntent,
+             is ShowScreenIntent, is PlayPauseIntent, is LockComputerIntent:
+            return TwinDeskIntentHandler()
+        default:
+            return nil
+        }
     }
 }
 

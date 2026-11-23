@@ -5,3 +5,4 @@
 "Show computer screen with ${applicationName}" = "Mostrar a tela do computador com ${applicationName}";
 "Play or pause with ${applicationName}" = "Reproduzir ou pausar com ${applicationName}";
 "Lock computer with ${applicationName}" = "Bloquear o computador com ${applicationName}";
+"Send files with ${applicationName}" = "Enviar arquivos com ${applicationName}";

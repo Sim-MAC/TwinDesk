@@ -1,0 +1,18 @@
+/* SiriKit Shortcuts intent names and descriptions. */
+"TD01T1" = "Panoyu Bilgisayara Gönder";
+"TD01D1" = "Bu iPhone’da kopyaladıklarınızı bağlı bilgisayara gönderir.";
+"TD02T1" = "Bilgisayarda Kopyalanan Dosyaları Kaydet";
+"TD02D1" = "Bilgisayarda kopyalanan dosyaları Dosyalar › TwinDesk’e getirir.";
+"TD03T1" = "Bilgisayara Bağlan";
+"TD03D1" = "Son kullanılan bilgisayara bağlanır.";
+"TD04T1" = "Dosyaları Bilgisayara Gönder";
+"TD04D1" = "Seçilen dosyaları bağlı bilgisayara gönderir.";
+"TD05T1" = "Bilgisayarın Ekranını Göster";
+"TD05D1" = "Bağlı bilgisayarın ekranını açar.";
+"TD06T1" = "Bilgisayarda Oynat veya Duraklat";
+"TD06D1" = "Bağlı bilgisayardaki medya oynatımını değiştirir.";
+"TD07T1" = "Bilgisayarı Kilitle";
+"TD07D1" = "Bağlı bilgisayarın ekranını kilitler.";
+"TDFILE" = "Dosyalar";
+"TDMSGL" = "Sonuç";
+"TDRESP" = "${message}";

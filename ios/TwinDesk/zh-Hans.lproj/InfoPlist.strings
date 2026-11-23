@@ -1,4 +1,5 @@
 /* What iOS asks before TwinDesk uses something. */
+NSSiriUsageDescription = "使用 Siri 和快捷指令发送剪贴板内容和文件、连接电脑、显示电脑屏幕、控制媒体播放并锁定电脑。";
 NSLocalNetworkUsageDescription = "TwinDesk 会在此网络上查找你的电脑并连接它们。";
 NSLocationWhenInUseUsageDescription = "TwinDesk 仅在不在屏幕上时使用你的大致位置（无 GPS）来保持与电脑的连接。它从不存储或发送你的位置。";
 NSPhotoLibraryUsageDescription = "将照片和视频发送到你的电脑，并让电脑显示和保存它们（在你开启电脑上的“照片”时）。";

@@ -1,0 +1,18 @@
+/* SiriKit Shortcuts intent names and descriptions. */
+"TD01T1" = "Enviar área de transferência para o computador";
+"TD01D1" = "Envia o que você copiou neste iPhone para o computador conectado.";
+"TD02T1" = "Salvar arquivos copiados no computador";
+"TD02D1" = "Traz os arquivos copiados no computador para Arquivos › TwinDesk.";
+"TD03T1" = "Conectar ao computador";
+"TD03D1" = "Conecta ao último computador.";
+"TD04T1" = "Enviar arquivos para o computador";
+"TD04D1" = "Envia arquivos selecionados para o computador conectado.";
+"TD05T1" = "Mostrar a tela do computador";
+"TD05D1" = "Abre a tela do computador conectado.";
+"TD06T1" = "Reproduzir ou pausar no computador";
+"TD06D1" = "Alterna a reprodução de mídia no computador conectado.";
+"TD07T1" = "Bloquear computador";
+"TD07D1" = "Bloqueia o computador conectado.";
+"TDFILE" = "Arquivos";
+"TDMSGL" = "Resultado";
+"TDRESP" = "${message}";

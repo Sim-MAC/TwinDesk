@@ -1172,7 +1172,7 @@ struct DeckWindowSpace: View {
                     }
                 }
             }
-            .scrollDisabled(drag != nil)
+            .modifier(CompatibleScrollEnabled(enabled: drag == nil))
             if let one = c.one, windows.count > 1 {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
@@ -1513,30 +1513,6 @@ func deckConfigs(_ n: Int, _ drawn: [[JSON]] = []) -> [[JSON]] {
     return own + made.filter { !seen.contains(key($0)) }
 }
 
-// Views in rows, wrapped to the width.
-struct DeckFlow: Layout {
-    var spacing: CGFloat = 6
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let w = proposal.width ?? .infinity
-        var x: CGFloat = 0, y: CGFloat = 0, row: CGFloat = 0, widest: CGFloat = 0
-        for s in subviews {
-            let z = s.sizeThatFits(.unspecified)
-            if x > 0 && x + z.width > w { x = 0; y += row + spacing; row = 0 }
-            x += z.width + spacing; row = max(row, z.height); widest = max(widest, x - spacing)
-        }
-        return CGSize(width: proposal.width ?? widest, height: y + row)
-    }
-    func placeSubviews(in b: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = b.minX, y = b.minY, row: CGFloat = 0
-        for s in subviews {
-            let z = s.sizeThatFits(.unspecified)
-            if x > b.minX && x + z.width > b.maxX { x = b.minX; y += row + spacing; row = 0 }
-            s.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(z))
-            x += z.width + spacing; row = max(row, z.height)
-        }
-    }
-}
-
 // Where a drop or a tap at (fx, fy) of the display puts a window on the 12 × 12 zone grid, the
 // same on every page: a corner a quarter, a side a half, the middle the whole display.
 func deckSnapZone(_ fx: CGFloat, _ fy: CGFloat) -> JSON? {
@@ -1577,7 +1553,7 @@ struct DeckTileEditor: View {
     var body: some View {
         let d = core.deck
         let e = DeckCatalog.entry(action)
-        NavigationStack {
+        NavigationHost {
             Form {
                 Section {
                     Button { picking = true } label: {
@@ -1790,7 +1766,7 @@ struct DeckActionPicker: View {
     var body: some View {
         let d = core.deck
         let words = q.trimmingCharacters(in: .whitespaces).lowercased()
-        NavigationStack {
+        NavigationHost {
             List {
                 ForEach(DeckCatalog.groups, id: \.0) { g in
                     let list = DeckCatalog.entries.filter { e in e.group == g.0 && (words.isEmpty ||

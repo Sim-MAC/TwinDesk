@@ -4,7 +4,6 @@
 // Sleep), what plays there, what it copied last and its latest notifications.
 // Connection: the computers nearby, the paired ones, pairing by QR code or address.
 import SwiftUI
-import PhotosUI
 import UniformTypeIdentifiers
 
 struct OverviewView: View {
@@ -12,7 +11,6 @@ struct OverviewView: View {
     @EnvironmentObject var ui: AppUI
     @State private var picking = false
     @State private var pickingPhotos = false
-    @State private var photos: [PhotosPickerItem] = []
 
     var body: some View {
         PageScroll(title: tr("Overview")) {
@@ -40,8 +38,12 @@ struct OverviewView: View {
         .fileImporter(isPresented: $picking, allowedContentTypes: [.item], allowsMultipleSelection: true) { r in
             if case .success(let urls) = r { for u in urls { core.files.adopt(u) }; core.files.flushShares() }
         }
-        .photosPicker(isPresented: $pickingPhotos, selection: $photos, maxSelectionCount: 50, matching: .any(of: [.images, .videos]))
-        .onChange(of: photos) { items in sendPhotos(items) }
+        .sheet(isPresented: $pickingPhotos) {
+            PhotoPicker { urls in
+                for url in urls { core.files.adopt(url) }
+                if !urls.isEmpty { core.files.flushShares() }
+            }
+        }
     }
 
     // Quick actions (Tiles.swift): what to do with the computer in a tap, edited in place.
@@ -124,18 +126,7 @@ struct OverviewView: View {
         .glassCard()
     }
 
-    private func sendPhotos(_ items: [PhotosPickerItem]) {
-        guard !items.isEmpty else { return }
-        photos = []
-        Task {
-            for it in items {
-                if let f = try? await it.loadTransferable(type: PickedFile.self) { await MainActor.run { core.files.adopt(f.url) } }
-            }
-            await MainActor.run { core.files.flushShares() }
-        }
-    }
 }
-
 // When this TwinDesk stops opening (a sideloaded build's 7 days), and Refresh: through the computer
 // when App refresh is set up, else to its page to set it up.
 struct ExpiryCard: View {
@@ -514,19 +505,5 @@ struct ConnectionView: View {
         f.unitsStyle = .short
         f.locale = Locale(identifier: I18n.shared.lang)
         return f.localizedString(for: Date(timeIntervalSince1970: t), relativeTo: Date())
-    }
-}
-
-// A photo or video from the library as a file we can send (its own name and bytes).
-struct PickedFile: Transferable {
-    let url: URL
-    static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(contentType: .item) { f in SentTransferredFile(f.url) } importing: { r in
-            let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            let to = dir.appendingPathComponent(r.file.lastPathComponent)
-            try FileManager.default.copyItem(at: r.file, to: to)
-            return PickedFile(url: to)
-        }
     }
 }

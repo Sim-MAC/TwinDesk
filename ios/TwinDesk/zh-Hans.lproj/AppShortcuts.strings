@@ -5,3 +5,4 @@
 "Show computer screen with ${applicationName}" = "用 ${applicationName} 显示电脑屏幕";
 "Play or pause with ${applicationName}" = "用 ${applicationName} 播放或暂停";
 "Lock computer with ${applicationName}" = "用 ${applicationName} 锁定电脑";
+"Send files with ${applicationName}" = "用 ${applicationName} 发送文件";
