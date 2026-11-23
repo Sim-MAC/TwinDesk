@@ -41,11 +41,8 @@ final class SampleHandler: RPBroadcastSampleHandler {
     // is held beside them. Scaled down to the size we send, then turned, so the computer gets the
     // picture the right way up (and the extension stays inside its 50 MB). iOS 16+ uses VideoToolbox;
     // iOS 15 uses the Core Image path below.
-    @available(iOS 16.0, *) private var scaler: VTPixelTransferSession?
-    @available(iOS 16.0, *) private var rotator: VTPixelRotationSession?
-    private var scaledPool: CVPixelBufferPool?
-    private var turnedPool: CVPixelBufferPool?
-    private var poolKey = ""
+    // Type-erased because iOS 16-only VideoToolbox sessions cannot be stored directly here.
+    private var videoToolboxUprighter: AnyObject?
     private let legacyCI = CIContext(options: [.cacheIntermediates: false])
     private var legacyPool: CVPixelBufferPool?
     private var legacyPoolKey = ""
@@ -125,36 +122,14 @@ final class SampleHandler: RPBroadcastSampleHandler {
 
     @available(iOS 16.0, *)
     private func uprightWithVideoToolbox(_ px: CVPixelBuffer, _ o: CGImagePropertyOrientation) -> CVPixelBuffer? {
-        let rotation: CFString
-        switch o {
-        case .left, .leftMirrored: rotation = kVTRotation_CW90
-        case .right, .rightMirrored: rotation = kVTRotation_CCW90
-        case .down, .downMirrored: rotation = kVTRotation_180
-        default: return px // portrait: as it is (the encoder scales it)
+        let processor: VideoToolboxUprighter
+        if let existing = videoToolboxUprighter as? VideoToolboxUprighter {
+            processor = existing
+        } else {
+            processor = VideoToolboxUprighter()
+            videoToolboxUprighter = processor
         }
-        let sw = CVPixelBufferGetWidth(px), sh = CVPixelBufferGetHeight(px)
-        let k = maxSize > 0 ? min(1.0, Double(maxSize) / Double(max(sw, sh))) : 1.0
-        let w = Int(Double(sw) * k) & ~1, h = Int(Double(sh) * k) & ~1
-        let fmt = CVPixelBufferGetPixelFormatType(px)
-        let quarter = rotation != kVTRotation_180
-        let key = "\(w)x\(h)/\(fmt)/\(rotation)"
-        if key != poolKey {
-            poolKey = key
-            scaledPool = Self.pool(w, h, fmt)
-            turnedPool = quarter ? Self.pool(h, w, fmt) : Self.pool(w, h, fmt)
-            if scaler == nil { VTPixelTransferSessionCreate(allocator: nil, pixelTransferSessionOut: &scaler) }
-            if rotator == nil { VTPixelRotationSessionCreate(nil, &rotator) }
-            if let r = rotator { VTSessionSetProperty(r, key: kVTPixelRotationPropertyKey_Rotation, value: rotation) }
-        }
-        guard let sp = scaledPool, let tp = turnedPool, let s = scaler, let r = rotator else { return px }
-        var small: CVPixelBuffer?
-        var turned: CVPixelBuffer?
-        CVPixelBufferPoolCreatePixelBuffer(nil, sp, &small)
-        CVPixelBufferPoolCreatePixelBuffer(nil, tp, &turned)
-        guard let a = small, let b = turned,
-              VTPixelTransferSessionTransferImage(s, from: px, to: a) == noErr,
-              VTPixelRotationSessionRotateImage(r, a, b) == noErr else { return px }
-        return b
+        return processor.upright(px, orientation: o, maxSize: maxSize)
     }
 
     // The newer VideoToolbox transfer and rotation sessions are iOS 16+. Render the same rotated,
@@ -199,7 +174,7 @@ final class SampleHandler: RPBroadcastSampleHandler {
         return output
     }
 
-    private static func pool(_ w: Int, _ h: Int, _ fmt: OSType) -> CVPixelBufferPool? {
+    fileprivate static func pool(_ w: Int, _ h: Int, _ fmt: OSType) -> CVPixelBufferPool? {
         var p: CVPixelBufferPool?
         let attrs: [String: Any] = [kCVPixelBufferWidthKey as String: w, kCVPixelBufferHeightKey as String: h,
                                     kCVPixelBufferPixelFormatTypeKey as String: fmt, kCVPixelBufferIOSurfacePropertiesKey as String: [:]]
@@ -359,4 +334,48 @@ final class SampleHandler: RPBroadcastSampleHandler {
     }
 
     private func be32(_ v: UInt32) -> Data { Data([UInt8(v >> 24), UInt8(v >> 16 & 255), UInt8(v >> 8 & 255), UInt8(v & 255)]) }
+}
+
+@available(iOS 16.0, *)
+private final class VideoToolboxUprighter {
+    private var scaler: VTPixelTransferSession?
+    private var rotator: VTPixelRotationSession?
+    private var scaledPool: CVPixelBufferPool?
+    private var turnedPool: CVPixelBufferPool?
+    private var poolKey = ""
+
+    func upright(_ px: CVPixelBuffer, orientation o: CGImagePropertyOrientation, maxSize: Int) -> CVPixelBuffer? {
+        let rotation: CFString
+        switch o {
+        case .left, .leftMirrored: rotation = kVTRotation_CW90
+        case .right, .rightMirrored: rotation = kVTRotation_CCW90
+        case .down, .downMirrored: rotation = kVTRotation_180
+        default: return px
+        }
+        let sourceWidth = CVPixelBufferGetWidth(px)
+        let sourceHeight = CVPixelBufferGetHeight(px)
+        let scale = maxSize > 0 ? min(1.0, Double(maxSize) / Double(max(sourceWidth, sourceHeight))) : 1.0
+        let width = Int(Double(sourceWidth) * scale) & ~1
+        let height = Int(Double(sourceHeight) * scale) & ~1
+        let format = CVPixelBufferGetPixelFormatType(px)
+        let quarterTurn = rotation != kVTRotation_180
+        let key = "\(width)x\(height)/\(format)/\(rotation)"
+        if key != poolKey {
+            poolKey = key
+            scaledPool = SampleHandler.pool(width, height, format)
+            turnedPool = quarterTurn ? SampleHandler.pool(height, width, format) : SampleHandler.pool(width, height, format)
+            if scaler == nil { VTPixelTransferSessionCreate(allocator: nil, pixelTransferSessionOut: &scaler) }
+            if rotator == nil { VTPixelRotationSessionCreate(nil, &rotator) }
+            if let rotator { VTSessionSetProperty(rotator, key: kVTPixelRotationPropertyKey_Rotation, value: rotation) }
+        }
+        guard let scaledPool, let turnedPool, let scaler, let rotator else { return px }
+        var scaled: CVPixelBuffer?
+        var turned: CVPixelBuffer?
+        CVPixelBufferPoolCreatePixelBuffer(nil, scaledPool, &scaled)
+        CVPixelBufferPoolCreatePixelBuffer(nil, turnedPool, &turned)
+        guard let scaled, let turned,
+              VTPixelTransferSessionTransferImage(scaler, from: px, to: scaled) == noErr,
+              VTPixelRotationSessionRotateImage(rotator, scaled, turned) == noErr else { return px }
+        return turned
+    }
 }
