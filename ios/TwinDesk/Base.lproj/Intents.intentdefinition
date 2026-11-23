@@ -105,7 +105,7 @@
 			<key>INIntentType</key>
 			<string>Custom</string>
 			<key>INIntentVerb</key>
-			<string>Send</string>
+			<string>Do</string>
 		</dict>
 		<dict>
 			<key>INIntentCategory</key>
@@ -196,7 +196,7 @@
 			<key>INIntentType</key>
 			<string>Custom</string>
 			<key>INIntentVerb</key>
-			<string>Save</string>
+			<string>Do</string>
 		</dict>
 		<dict>
 			<key>INIntentCategory</key>
@@ -287,7 +287,7 @@
 			<key>INIntentType</key>
 			<string>Custom</string>
 			<key>INIntentVerb</key>
-			<string>Connect</string>
+			<string>Do</string>
 		</dict>
 		<dict>
 			<key>INIntentCategory</key>
@@ -397,7 +397,7 @@
 			<key>INIntentType</key>
 			<string>Custom</string>
 			<key>INIntentVerb</key>
-			<string>Send</string>
+			<string>Do</string>
 		</dict>
 		<dict>
 			<key>INIntentCategory</key>
@@ -488,7 +488,7 @@
 			<key>INIntentType</key>
 			<string>Custom</string>
 			<key>INIntentVerb</key>
-			<string>Show</string>
+			<string>Do</string>
 		</dict>
 		<dict>
 			<key>INIntentCategory</key>
@@ -579,7 +579,7 @@
 			<key>INIntentType</key>
 			<string>Custom</string>
 			<key>INIntentVerb</key>
-			<string>Control</string>
+			<string>Do</string>
 		</dict>
 		<dict>
 			<key>INIntentCategory</key>
@@ -670,7 +670,7 @@
 			<key>INIntentType</key>
 			<string>Custom</string>
 			<key>INIntentVerb</key>
-			<string>Lock</string>
+			<string>Do</string>
 		</dict>
 	</array>
 	<key>INTypes</key>
