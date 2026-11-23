@@ -112,7 +112,11 @@ struct ArrangeSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(tr("Cancel")) { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button(tr("Done")) { NavOrder.save(pages, bar: bar); NavOrder.setSearchButton(search); dismiss() }.bold() }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button { NavOrder.save(pages, bar: bar); NavOrder.setSearchButton(search); dismiss() } label: {
+                        Text(tr("Done")).font(.body.weight(.semibold))
+                    }
+                }
                 ToolbarItem(placement: .bottomBar) { Button(tr("Reset"), role: .destructive) { NavOrder.reset(); dismiss() } }
             }
         }
@@ -229,7 +233,11 @@ struct SearchView: View {
         .safeAreaInset(edge: .top) { field }
         .navigationTitle(tr("Search"))
         .navigationBarTitleDisplayMode(sheet ? .inline : .large)
-        .toolbar { if sheet { ToolbarItem(placement: .cancellationAction) { Button(tr("Cancel")) { dismiss() } } } }
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                if sheet { Button(tr("Cancel")) { dismiss() } }
+            }
+        }
         .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { focused = true } }
     }
 

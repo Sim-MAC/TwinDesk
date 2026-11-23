@@ -233,7 +233,7 @@ struct DeckScreen: View {
         // The first touch anywhere (a tile, a swipe, the tab itself) puts the hint away.
         .simultaneousGesture(TapGesture().onEnded { endHint() })
         .statusBarHidden(true)
-        .persistentSystemOverlays(.hidden)
+        .modifier(PersistentOverlaysCompat(hidden: true))
         .onAppear {
             turn(portrait: core.deck.portrait)
             Awake.hold("deck", true)
@@ -1336,11 +1336,11 @@ struct DeckWindowSpace: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             }
             .contentShape(Rectangle())
-            .onTapGesture { p in
+            .modifier(TapLocationCompat { p in
                 guard let z = deckSnapZone(p.x / g.size.width, p.y / g.size.height) else { return }
                 if let one = c.one { put(one, z, c) }
                 else if c.picked.isEmpty { armed = same(armed, z) ? nil : z }
-            }
+            })
             .onAppear { pad = g.frame(in: .named("ws")) }
             .onChange(of: g.frame(in: .named("ws"))) { f in pad = f }
         }
@@ -1613,7 +1613,9 @@ struct DeckTileEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(tr("Cancel")) { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button(tr("Save")) { save(); saved = true; dismiss() }.fontWeight(.semibold) }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button { save(); saved = true; dismiss() } label: { Text(tr("Save")).font(.body.weight(.semibold)) }
+                }
             }
             .sheet(isPresented: $picking, onDismiss: { if fresh && action.str("k") == "none" { dismiss() } }) {
                 DeckActionPicker { entry in
@@ -1695,7 +1697,7 @@ struct DeckActionOptions: View {
                 TextField(tr("Shortcut, like Mod+Shift+KeyS"), text: bind("combo")).autocorrectionDisabled().textInputAutocapitalization(.never)
                 Text(tr("Mod is ⌘ on a Mac and Ctrl elsewhere. Or record it on the computer’s Deck page.")).font(.caption).foregroundStyle(.secondary)
             case "text":
-                TextField(tr("Text"), text: bind("text"), axis: .vertical)
+                MultilineTextInput(title: tr("Text"), text: bind("text"))
                 Toggle(tr("Press Return after it"), isOn: Binding(get: { action.bool("enter") }, set: { action["enter"] = $0 }))
             case "url":
                 TextField(tr("Website"), text: bind("url")).keyboardType(.URL).autocorrectionDisabled().textInputAutocapitalization(.never)

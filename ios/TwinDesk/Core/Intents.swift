@@ -17,7 +17,7 @@ final class TwinDeskIntentHandler: NSObject,
         run(.sendClipboard) { result in
             let response = SendClipboardIntentResponse(code: result.succeeded ? .success : .failure, userActivity: nil)
             response.message = result.message
-            finish(intent, response, successful: result.succeeded, completion: completion)
+            self.finish(intent, response, successful: result.succeeded, completion: completion)
         }
     }
 
@@ -26,7 +26,7 @@ final class TwinDeskIntentHandler: NSObject,
         run(.saveCopiedFiles) { result in
             let response = SaveCopiedFilesIntentResponse(code: result.succeeded ? .success : .failure, userActivity: nil)
             response.message = result.message
-            finish(intent, response, successful: result.succeeded, completion: completion)
+            self.finish(intent, response, successful: result.succeeded, completion: completion)
         }
     }
 
@@ -35,7 +35,7 @@ final class TwinDeskIntentHandler: NSObject,
         run(.connect) { result in
             let response = ConnectIntentResponse(code: result.succeeded ? .success : .failure, userActivity: nil)
             response.message = result.message
-            finish(intent, response, successful: result.succeeded, completion: completion)
+            self.finish(intent, response, successful: result.succeeded, completion: completion)
         }
     }
 
@@ -44,7 +44,7 @@ final class TwinDeskIntentHandler: NSObject,
         run(.sendFiles, files: intent.files ?? []) { result in
             let response = SendFilesIntentResponse(code: result.succeeded ? .success : .failure, userActivity: nil)
             response.message = result.message
-            finish(intent, response, successful: result.succeeded, completion: completion)
+            self.finish(intent, response, successful: result.succeeded, completion: completion)
         }
     }
 
@@ -53,7 +53,7 @@ final class TwinDeskIntentHandler: NSObject,
         run(.showScreen) { result in
             let response = ShowScreenIntentResponse(code: result.succeeded ? .success : .failure, userActivity: nil)
             response.message = result.message
-            finish(intent, response, successful: result.succeeded, completion: completion)
+            self.finish(intent, response, successful: result.succeeded, completion: completion)
         }
     }
 
@@ -62,7 +62,7 @@ final class TwinDeskIntentHandler: NSObject,
         run(.playPause) { result in
             let response = PlayPauseIntentResponse(code: result.succeeded ? .success : .failure, userActivity: nil)
             response.message = result.message
-            finish(intent, response, successful: result.succeeded, completion: completion)
+            self.finish(intent, response, successful: result.succeeded, completion: completion)
         }
     }
 
@@ -71,7 +71,7 @@ final class TwinDeskIntentHandler: NSObject,
         run(.lockComputer) { result in
             let response = LockComputerIntentResponse(code: result.succeeded ? .success : .failure, userActivity: nil)
             response.message = result.message
-            finish(intent, response, successful: result.succeeded, completion: completion)
+            self.finish(intent, response, successful: result.succeeded, completion: completion)
         }
     }
 

@@ -124,7 +124,7 @@ struct ViewerScreen: View {
             if bar { barView.padding(.top, 26).transition(.opacity) }
         }
         .statusBarHidden(true)
-        .persistentSystemOverlays(.hidden)
+        .modifier(PersistentOverlaysCompat(hidden: true))
         .animation(.easeInOut(duration: 0.2), value: bar)
         .onAppear {
             let h = host ?? WebHost("viewer.html", core: core)
@@ -387,7 +387,7 @@ struct RemoteScreen: View {
             }
         }
         .statusBarHidden(mode != "voice")
-        .persistentSystemOverlays(mode == "voice" ? .automatic : .hidden)
+        .modifier(PersistentOverlaysCompat(hidden: mode != "voice"))
         .onAppear {
             let h = host ?? WebHost("remote.html", core: core)
             host = h

@@ -13,7 +13,7 @@ struct CompatibleSheet: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         if #available(iOS 16.0, *) {
-            content.presentationDetents(size == .medium ? [.medium()] : [.large()])
+            content.presentationDetents(size == .medium ? [.medium] : [.large])
         } else {
             content.background(SheetSizeConfigurator(size: size).frame(width: 0, height: 0))
         }
@@ -90,7 +90,7 @@ private struct ListBackgroundConfigurator: UIViewControllerRepresentable {
                 guard let self else { return }
                 var root: UIViewController = self
                 while let parent = root.parent { root = parent }
-                Self.clearTableBackgrounds(in: root.view)
+                if let view = root.view { Self.clearTableBackgrounds(in: view) }
             }
         }
 
@@ -117,6 +117,61 @@ struct CompatibleScrollEnabled: ViewModifier {
     }
 }
 
+struct PersistentOverlaysCompat: ViewModifier {
+    let hidden: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.persistentSystemOverlays(hidden ? .hidden : .automatic)
+        } else {
+            content
+        }
+    }
+}
+
+struct TapLocationCompat: ViewModifier {
+    let action: (CGPoint) -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 17.0, *) {
+            content.onTapGesture(count: 1, coordinateSpace: .local, perform: action)
+        } else if #available(iOS 16.0, *) {
+            content.simultaneousGesture(SpatialTapGesture(coordinateSpace: .local).onEnded { action($0.location) })
+        } else {
+            content.simultaneousGesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .local).onEnded { value in
+                    guard abs(value.translation.width) < 8, abs(value.translation.height) < 8 else { return }
+                    action(value.startLocation)
+                }
+            )
+        }
+    }
+}
+
+struct MultilineTextInput: View {
+    let title: String
+    @Binding var text: String
+
+    var body: some View {
+        if #available(iOS 16.0, *) {
+            TextField(title, text: $text, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+        } else {
+            ZStack(alignment: .topLeading) {
+                if text.isEmpty {
+                    Text(title).foregroundColor(.secondary).padding(.horizontal, 8).padding(.vertical, 8)
+                        .allowsHitTesting(false)
+                }
+                TextEditor(text: $text).padding(.horizontal, 4).padding(.vertical, 2)
+            }
+            .frame(minHeight: 76, maxHeight: 140)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.25)))
+        }
+    }
+}
+
 private struct ScrollEnabledConfigurator: UIViewControllerRepresentable {
     let enabled: Bool
 
@@ -139,7 +194,7 @@ private struct ScrollEnabledConfigurator: UIViewControllerRepresentable {
         func updateScrollView() {
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
-                var root = self.view
+                guard var root = self.view else { return }
                 while let parent = root.superview { root = parent }
                 Self.setHorizontalScrolls(in: root, enabled: self.enabled)
             }

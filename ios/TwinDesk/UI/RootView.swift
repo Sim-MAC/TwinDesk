@@ -283,7 +283,7 @@ struct RootView: View {
             }
         } else {
             NavigationView {
-                Sidebar(selection: nil, hiding: tabs, legacyNavigation: true)
+                Sidebar(selection: nil, legacyNavigation: true, hiding: tabs)
                     .background { LegacyPathLink(tab: .more, depth: 0) }
             }
             .navigationViewStyle(StackNavigationViewStyle())
@@ -490,7 +490,11 @@ struct Sidebar: View {
         .modifier(BrandBar(on: selection != nil)) // iPad: the mark and name in the bar, level with the sidebar button
         .refreshable { core.discovery.refresh() }
         // iPhone's More: Edit arranges the pages (which are tabs, and their order).
-        .toolbar { if selection == nil { ToolbarItem(placement: .navigationBarTrailing) { Button(tr("Edit")) { ui.arranging = true } } } }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if selection == nil { Button(tr("Edit")) { ui.arranging = true } }
+            }
+        }
     }
 
     @ViewBuilder

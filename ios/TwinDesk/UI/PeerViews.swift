@@ -530,7 +530,7 @@ struct PeerThreadView: View {
             }
             if !status.isEmpty { Text(status).font(.caption).foregroundStyle(.secondary) }
             HStack {
-                TextField(tr("Message"), text: $text, axis: .vertical).textFieldStyle(.roundedBorder)
+                MultilineTextInput(title: tr("Message"), text: $text)
                 Button { send() } label: { Image(systemName: "arrow.up.circle.fill").font(.title2) }.disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || to.isEmpty)
             }
             .padding()

@@ -32,11 +32,20 @@ struct ShareScreenCard: View {
         let on = core.mirror.sharing
         // Side by side when there's room, the button under the words when there isn't (never a
         // word broken a letter a line).
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 14) { icon(on); words(on).layoutPriority(1); Spacer(minLength: 8); button(on).fixedSize() }
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 14) { icon(on); words(on) }
-                button(on)
+        Group {
+            if #available(iOS 16.0, *) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 14) { icon(on); words(on).layoutPriority(1); Spacer(minLength: 8); button(on).fixedSize() }
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 14) { icon(on); words(on) }
+                        button(on)
+                    }
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 14) { icon(on); words(on) }
+                    button(on)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
